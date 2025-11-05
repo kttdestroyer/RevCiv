@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5dc2f00cb3b230546aa807acd0a10807, type: 3}
+  m_Name: BiomeManagerData
+  m_EditorClassIdentifier: 
+  biomes:
+  - biomeName: Desert
+    hiddenAnimals:
+    - locust
+    - snake
+    - scorpion
+  - biomeName: Grass
+    hiddenAnimals:
+    - cricket
+    - sparrow
+    - fox
+  - biomeName: Snow
+    hiddenAnimals:
+    - raven
+    - wolf
+  - biomeName: Jungle
+    hiddenAnimals:
+    - parrot
+    - monkey
+    - frog

@@ -1,0 +1,115 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71c64cbd57e7a014ebfbf71bcc5c37bb, type: 3}
+  m_Name: FaunaDB
+  m_EditorClassIdentifier: 
+  species:
+  - speciesName: Beaver
+    preferredBiome: Forest
+    preferredSubBiome: Temperate Forest
+    idealTemperature: 0.55
+    idealMoisture: 0.65
+    baseReproduction: 0.18
+    baseMortality: 0.08
+    sensitivityToHumanImpact: 0.7
+    migrationTendency: 0.25
+    minPopulationForPersistence: 4
+  - speciesName: Wolf
+    preferredBiome: Forest
+    preferredSubBiome: Any
+    idealTemperature: 0.35
+    idealMoisture: 0.45
+    baseReproduction: 0.1
+    baseMortality: 0.07
+    sensitivityToHumanImpact: 0.6
+    migrationTendency: 0.3
+    minPopulationForPersistence: 0
+  - speciesName: Monkey
+    preferredBiome: Jungle
+    preferredSubBiome: Rainforest
+    idealTemperature: 0.8
+    idealMoisture: 0.8
+    baseReproduction: 0.15
+    baseMortality: 0.09
+    sensitivityToHumanImpact: 0.6
+    migrationTendency: 0.2
+    minPopulationForPersistence: 4
+  - speciesName: Parrot
+    preferredBiome: Jungle
+    preferredSubBiome: Rainforest
+    idealTemperature: 0.75
+    idealMoisture: 0.9
+    baseReproduction: 0.12
+    baseMortality: 0.08
+    sensitivityToHumanImpact: 0.4
+    migrationTendency: 0.3
+    minPopulationForPersistence: 0
+  - speciesName: Fox
+    preferredBiome: Grassland
+    preferredSubBiome: Steppe
+    idealTemperature: 0.55
+    idealMoisture: 0.35
+    baseReproduction: 0.22
+    baseMortality: 0.12
+    sensitivityToHumanImpact: 0.5
+    migrationTendency: 0.25
+    minPopulationForPersistence: 3
+  - speciesName: Deer
+    preferredBiome: Grassland
+    preferredSubBiome: Any
+    idealTemperature: 0.5
+    idealMoisture: 0.5
+    baseReproduction: 0.14
+    baseMortality: 0.07
+    sensitivityToHumanImpact: 0.4
+    migrationTendency: 0.3
+    minPopulationForPersistence: 0
+  - speciesName: Ant
+    preferredBiome: Grassland
+    preferredSubBiome: Savanna / Steppe
+    idealTemperature: 0.65
+    idealMoisture: 0.4
+    baseReproduction: 0.5
+    baseMortality: 0.3
+    sensitivityToHumanImpact: 0.3
+    migrationTendency: 0.1
+    minPopulationForPersistence: 5
+  - speciesName: Bear
+    preferredBiome: Forest
+    preferredSubBiome: Boreal Forest
+    idealTemperature: 0.4
+    idealMoisture: 0.55
+    baseReproduction: 0.09
+    baseMortality: 0.06
+    sensitivityToHumanImpact: 0.8
+    migrationTendency: 0.15
+    minPopulationForPersistence: 2
+  - speciesName: Frog
+    preferredBiome: Jungle
+    preferredSubBiome: Wetland / Rainforest
+    idealTemperature: 0.7
+    idealMoisture: 0.95
+    baseReproduction: 0.35
+    baseMortality: 0.2
+    sensitivityToHumanImpact: 0.7
+    migrationTendency: 0.15
+    minPopulationForPersistence: 5
+  - speciesName: Owl
+    preferredBiome: Forest
+    preferredSubBiome: Temperate Forest
+    idealTemperature: 0.5
+    idealMoisture: 0.45
+    baseReproduction: 0.09
+    baseMortality: 0.05
+    sensitivityToHumanImpact: 0.5
+    migrationTendency: 0.2
+    minPopulationForPersistence: 2

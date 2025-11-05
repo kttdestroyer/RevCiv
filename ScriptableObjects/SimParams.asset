@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0da07e7919f24cf4d848be45e3f2d3a9, type: 3}
+  m_Name: SimParams
+  m_EditorClassIdentifier: 
+  baseRecoveryRate: 0.005
+  vegetationDecayPerImpact: 0.01
+  soilDepletionRate: 0.002
+  rainforestToDryThreshold: 0.3
+  steppeThreshold: 0.25
+  globalReproductionMultiplier: 1
+  globalMortalityMultiplier: 1
