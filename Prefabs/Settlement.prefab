@@ -123,6 +123,7 @@ GameObject:
   - component: {fileID: 5857263878990026442}
   - component: {fileID: 9035095120659879611}
   - component: {fileID: 8682241460689396826}
+  - component: {fileID: -4199459012711050662}
   m_Layer: 0
   m_Name: Settlement
   m_TagString: Untagged
@@ -240,3 +241,21 @@ MonoBehaviour:
   foodResource: {fileID: 11400000, guid: 624387ce4a567ca488eaaf73ebbafaa3, type: 2}
   foodPerPopPerDay: 1
   surplusNeededForGrowth: 4
+--- !u!114 &-4199459012711050662
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8785565131699852264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5bf9a9ba9cab0bb4593e4b6b6a320441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gridRoot: {fileID: 0}
+  tileSize: 1
+  borderWidth: 0.12
+  height: 0.1
+  color: {r: 0.1, g: 1, b: 0.8, a: 0.65}
+  rebuildInterval: 0.5
