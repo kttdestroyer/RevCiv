@@ -6,152 +6,184 @@ public class HoverOverlay : MonoBehaviour
 {
     [Header("Visual")]
     public float height = 0.12f;
-    public float size = 0.98f;
-    public float tileSize = 1f;
+    public float alpha = 0.65f;
+    public Color idleColor = new Color(1f, 1f, 1f, 0.65f);
+    public Color okColor = new Color(0.2f, 1f, 0.2f, 0.65f);
+    public Color badColor = new Color(1f, 0.2f, 0.2f, 0.65f);
 
     [Header("Debug")]
-    public bool debugLogs = false;
+    public bool keepVisibleForDebug = false; // shows last hex even when not hovering
 
-    const string ChildName = "HoverOverlay_Quad";
+    const string ChildName = "HoverOverlay_Hex";
 
-    GameObject quad;
+    GameObject child;
+    MeshFilter mf;
     MeshRenderer mr;
-    Material matInstance;
-    Texture2D whiteTex; // ensure sprite-like tinting multiplies a texture
+    Material mat;
 
-    void Awake() { Ensure(); }
-    void OnEnable() { Ensure(); Hide(); }
-    void OnDisable() { if (quad) quad.SetActive(false); }
+    void OnEnable()
+    {
+        EnsureChild();
+        if (!keepVisibleForDebug) Hide();
+    }
+
+    void OnDisable()
+    {
+        if (child) child.SetActive(false);
+    }
+
     void OnDestroy()
     {
-        if (quad)
+        if (child)
         {
 #if UNITY_EDITOR
-            if (!Application.isPlaying) DestroyImmediate(quad);
-            else Destroy(quad);
+            if (!Application.isPlaying) DestroyImmediate(child);
+            else Destroy(child);
 #else
-            Destroy(quad);
+            Destroy(child);
 #endif
-            quad = null;
+            child = null; mf = null; mr = null;
         }
-        if (whiteTex)
+        if (mat)
         {
 #if UNITY_EDITOR
-            if (!Application.isPlaying) DestroyImmediate(whiteTex);
-            else Destroy(whiteTex);
+            if (!Application.isPlaying) DestroyImmediate(mat);
+            else Destroy(mat);
 #else
-            Destroy(whiteTex);
+            Destroy(mat);
 #endif
-            whiteTex = null;
-        }
-        if (matInstance)
-        {
-#if UNITY_EDITOR
-            if (!Application.isPlaying) DestroyImmediate(matInstance);
-            else Destroy(matInstance);
-#else
-            Destroy(matInstance);
-#endif
-            matInstance = null;
+            mat = null;
         }
     }
 
-    public void ShowAt(Vector3 worldPos, Color c)
+    public void ShowAt(TileInfo tile, Color c)
     {
-        Ensure();
-        quad.SetActive(true);
+        if (!tile) { if (!keepVisibleForDebug) Hide(); return; }
+        EnsureChild();
 
-        quad.transform.position = new Vector3(worldPos.x, worldPos.y + height, worldPos.z);
-        quad.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
-        quad.transform.localScale = new Vector3(tileSize * size, tileSize * size, 1f);
+        // bounds ? center + radius
+        Bounds b;
+        var bc = tile.GetComponent<BoxCollider>();
+        if (bc) b = bc.bounds;
+        else
+        {
+            var r = tile.GetComponent<MeshRenderer>();
+            if (!r) { if (!keepVisibleForDebug) Hide(); return; }
+            b = r.bounds;
+        }
 
-        ApplyColor(c);
+        float radius = HexGrid.EstimateRadiusFromBounds(b);
+        Vector3 center = b.center;
+        center.y = b.max.y + height;
+
+        if (mf.sharedMesh == null) mf.sharedMesh = new Mesh() { name = "HoverOverlayHex" };
+        BuildHexLocal(mf.sharedMesh, child.transform, center, radius, c);
+
+        if (mat != null)
+        {
+            if (mat.HasProperty("_Color")) mat.SetColor("_Color", c);
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", c);
+        }
+
+        if (!child.activeSelf) child.SetActive(true);
     }
 
     public void Hide()
     {
-        Ensure();
-        if (quad.activeSelf) quad.SetActive(false);
+        EnsureChild();
+        if (keepVisibleForDebug) return;
+        if (child && child.activeSelf) child.SetActive(false);
     }
 
-    // ---------------- internals ----------------
-    void Ensure()
+    // ---- internal ----
+    void EnsureChild()
     {
-        if (!quad)
+        // find existing by exact name
+        if (!child)
         {
-            var existing = transform.Find(ChildName);
-            if (existing) quad = existing.gameObject;
+            var t = transform.Find(ChildName);
+            if (t) child = t.gameObject;
         }
 
-        if (!quad)
+        // create if missing
+        if (!child)
         {
-            quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            quad.name = ChildName;
-            quad.transform.SetParent(transform, false);
-            var col = quad.GetComponent<Collider>();
-            if (col) DestroyImmediate(col);
+            child = new GameObject(ChildName);
+            child.transform.SetParent(transform, false);
+            child.transform.localPosition = Vector3.zero;
+            child.transform.localRotation = Quaternion.identity;
+            child.transform.localScale = Vector3.one;
         }
 
-        if (!mr) mr = quad.GetComponent<MeshRenderer>();
+        // ensure required components
+        mf = child.GetComponent<MeshFilter>();
+        if (!mf) mf = child.AddComponent<MeshFilter>();
 
-        if (matInstance == null)
+        mr = child.GetComponent<MeshRenderer>();
+        if (!mr) mr = child.AddComponent<MeshRenderer>();
+
+        // remove any collider that might have come from a primitive
+        var col = child.GetComponent<Collider>();
+        if (col)
         {
-            // Use Sprites/Default – always tints by _Color over a texture
+#if UNITY_EDITOR
+            DestroyImmediate(col);
+#else
+            Destroy(col);
+#endif
+        }
+
+        // ensure a transparent material
+        if (!mat)
+        {
             var shader = Shader.Find("Sprites/Default");
-            if (shader == null)
-            {
-                shader = Shader.Find("Unlit/Transparent"); // fallback
-            }
-            matInstance = new Material(shader);
-            matInstance.renderQueue = 3500; // transparent queue
-
-            // Common transparent settings (work in Built-in/URP)
-            TrySetInt(matInstance, "_ZWrite", 0);
-            TrySetInt(matInstance, "_Surface", 1); // URP: 0=Opaque,1=Transparent
-            TrySetBlend(matInstance, 5, 10);       // SrcAlpha / OneMinusSrcAlpha
-
-            // Ensure there is a texture to be tinted
-            if (!whiteTex)
-            {
-                whiteTex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-                whiteTex.name = "HoverOverlayWhite";
-                whiteTex.SetPixel(0, 0, Color.white);
-                whiteTex.Apply();
-            }
-            if (matInstance.HasProperty("_MainTex")) matInstance.SetTexture("_MainTex", whiteTex);
-
-            mr.sharedMaterial = matInstance; // use same instance across play/edit to avoid leaks
+            if (!shader) shader = Shader.Find("Unlit/Transparent");
+            mat = new Material(shader) { renderQueue = 3500 };
+            TrySetInt(mat, "_ZWrite", 0);
+            TrySetInt(mat, "_Surface", 1);
+            TrySetInt(mat, "_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            TrySetInt(mat, "_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
         }
+        if (mr.sharedMaterial != mat) mr.sharedMaterial = mat;
+
+        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        mr.receiveShadows = false;
     }
 
-    void ApplyColor(Color c)
+    static void BuildHexLocal(Mesh mesh, Transform target, Vector3 centerWorld, float radius, Color c)
     {
-        if (matInstance == null) return;
+        Vector3[] corners = new Vector3[6];
+        HexGrid.GetHexCorners(centerWorld, radius, corners);
 
-        // Apply to common color property names
-        if (matInstance.HasProperty("_Color")) matInstance.SetColor("_Color", c);
-        if (matInstance.HasProperty("_BaseColor")) matInstance.SetColor("_BaseColor", c); // URP Unlit/2D
+        var inv = target.worldToLocalMatrix;
 
-        // Some pipelines ignore _Color alpha unless Surface=Transparent
-        TrySetInt(matInstance, "_Surface", 1);
-        TrySetBlend(matInstance, 5, 10);
+        Vector3[] v = new Vector3[7]; // center + 6 corners
+        Color[] col = new Color[7];
+        int[] tri = new int[6 * 3];
 
-        // Force renderer to update now
-        if (mr != null) mr.enabled = true;
+        v[0] = inv.MultiplyPoint3x4(centerWorld);
+        col[0] = c;
 
-        if (debugLogs)
-            Debug.Log($"[HoverOverlay] Shader={matInstance.shader.name} color=({c.r:F2},{c.g:F2},{c.b:F2},{c.a:F2})");
+        for (int i = 0; i < 6; i++)
+        {
+            v[i + 1] = inv.MultiplyPoint3x4(corners[i]);
+            col[i + 1] = c;
+
+            int iNext = (i + 1) % 6;
+            tri[i * 3 + 0] = 0;
+            tri[i * 3 + 1] = i + 1;
+            tri[i * 3 + 2] = iNext + 1;
+        }
+
+        mesh.Clear();
+        mesh.vertices = v;
+        mesh.colors = col;
+        mesh.triangles = tri;
+        mesh.RecalculateBounds();
     }
 
     static void TrySetInt(Material m, string prop, int val)
     {
         if (m.HasProperty(prop)) m.SetInt(prop, val);
-    }
-
-    static void TrySetBlend(Material m, int src, int dst)
-    {
-        // _SrcBlend/_DstBlend not present on all shaders; ignore if missing
-        if (m.HasProperty("_SrcBlend")) m.SetInt("_SrcBlend", src);
-        if (m.HasProperty("_DstBlend")) m.SetInt("_DstBlend", dst);
     }
 }

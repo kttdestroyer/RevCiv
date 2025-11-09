@@ -1,83 +1,71 @@
 using UnityEngine;
 
+[DisallowMultipleComponent]
 public class WorldGenerator : MonoBehaviour
 {
-    [Header("Grid")]
-    public int width = 16;
-    public int height = 16;
-    public float tileSize = 1f;
-    public GameObject tilePrefab; // should have TileInfo (+ BoxCollider) and optionally BordersOverlay
+    [Header("Hex Grid (pointy-top axial)")]
+    public int radiusRange = 8;
+    public float hexRadius = 0.5f;
+    public GameObject tilePrefab;
 
-    [Header("Biome defaults")]
-    public string defaultBiome = "Plains";
-    public float defaultTemp = 0.5f;
-    public float defaultMoisture = 0.5f;
+    [Header("Clean")]
+    public bool destroyChildrenOnGenerate = true;
 
-    [Header("Post-generate")]
-    public bool distributeAfterGenerate = true;
+    TileIndex index;
 
-    public void Generate()
+    void Awake()
     {
-        // clear old
-        for (int i = transform.childCount - 1; i >= 0; i--)
-            DestroyImmediate(transform.GetChild(i).gameObject);
+        index = GetComponent<TileIndex>();
+        if (!index) index = gameObject.AddComponent<TileIndex>();
+        index.hexRadius = hexRadius;
+    }
 
-        // build grid
-        for (int z = 0; z < height; z++)
+    [ContextMenu("Generate World")]
+    public void GenerateWorld()
+    {
+        if (!tilePrefab)
         {
-            for (int x = 0; x < width; x++)
+            Debug.LogError("WorldGenerator: Tile Prefab is not assigned.");
+            return;
+        }
+
+        if (destroyChildrenOnGenerate)
+        {
+            for (int i = transform.childCount - 1; i >= 0; i--)
             {
-                Vector3 pos = new Vector3(x * tileSize, 0, z * tileSize);
-                GameObject go;
-
-                if (tilePrefab != null)
-                {
-                    go = Instantiate(tilePrefab, pos, Quaternion.identity, transform);
-                }
-                else
-                {
-                    // fallback quad if no prefab assigned
-                    go = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                    go.transform.position = pos;
-                    go.transform.rotation = Quaternion.Euler(90, 0, 0);
-                    go.transform.localScale = Vector3.one * tileSize;
-                    go.transform.SetParent(transform);
-                    if (!go.GetComponent<BoxCollider>()) go.AddComponent<BoxCollider>();
-                }
-
-                var ti = go.GetComponent<TileInfo>();
-                if (!ti) ti = go.AddComponent<TileInfo>();
-
-                ti.biome = defaultBiome;
-                ti.temperature = defaultTemp;
-                ti.moisture = defaultMoisture;
+                var child = transform.GetChild(i);
+#if UNITY_EDITOR
+                if (!Application.isPlaying) DestroyImmediate(child.gameObject);
+                else Destroy(child.gameObject);
+#else
+                Destroy(child.gameObject);
+#endif
             }
         }
 
-        // kick resource distribution (on same GameObject if present; otherwise find one in scene)
-        if (distributeAfterGenerate)
-            TryDistributeResources();
-    }
+        int count = 0;
+        for (int r = -radiusRange; r <= radiusRange; r++)
+        {
+            int qMin = Mathf.Max(-radiusRange, -r - radiusRange);
+            int qMax = Mathf.Min(radiusRange, -r + radiusRange);
+            for (int q = qMin; q <= qMax; q++)
+            {
+                var pos = HexGrid.AxialToWorld(q, r, hexRadius, 0f);
+                var go = Object.Instantiate(tilePrefab, pos, Quaternion.identity, transform);
+                go.name = $"Tile_{q}_{r}";
 
-    void TryDistributeResources()
-    {
-        // Prefer a distributor on the same GO
-        var local = GetComponent<ResourceDistributor>();
-        if (local != null) { local.Distribute(); return; }
+                var ti = go.GetComponent<TileInfo>();
+                if (!ti) ti = go.AddComponent<TileInfo>();
+                ti.q = q; ti.r = r;
+                count++;
+            }
+        }
 
-#if UNITY_6000_0_OR_NEWER
-        var any = FindFirstObjectByType<ResourceDistributor>();
-#else
-        var any = FindObjectOfType<ResourceDistributor>();
-#endif
-        if (any != null) any.Distribute();
-    }
+        // rebuild lookup
+        if (!index) index = GetComponent<TileIndex>() ?? gameObject.AddComponent<TileIndex>();
+        index.hexRadius = hexRadius;
+        index.RebuildIndex();
 
-#if UNITY_EDITOR
-    [ContextMenu("Generate World")]
-    void EditorGenerate()
-    {
-        Generate();
+        Debug.Log($"WorldGenerator: Generated hex map with ~{count} tiles (R={radiusRange}, hexRadius={hexRadius}).");
     }
-#endif
 }

@@ -9,50 +9,107 @@ public class BuildGhost : MonoBehaviour
     public Color okColor = new Color(0.2f, 1f, 0.2f, 0.6f);
     public Color blockedColor = new Color(1f, 0.2f, 0.2f, 0.6f);
 
+    const string ChildName = "BuildGhost_Visual";
+
     GameObject ghost;
     MeshRenderer mr;
 
-    void OnEnable() { Ensure(); Hide(); }
-    void OnDisable() { if (ghost) ghost.SetActive(false); }
+    void OnEnable()
+    {
+        Ensure();
+        Hide();
+    }
+
+    void OnDisable()
+    {
+        if (ghost) ghost.SetActive(false);
+    }
+
+    void OnDestroy()
+    {
+        if (ghost)
+        {
+#if UNITY_EDITOR
+            if (!Application.isPlaying) DestroyImmediate(ghost);
+            else Destroy(ghost);
+#else
+            Destroy(ghost);
+#endif
+            ghost = null; mr = null;
+        }
+    }
 
     public void ShowAt(Vector3 pos, bool ok)
     {
         Ensure();
         ghost.SetActive(true);
         ghost.transform.position = pos + Vector3.up * height;
-        if (mr && mr.sharedMaterial)
+
+        if (mr != null)
         {
             var col = ok ? okColor : blockedColor;
-            if (mr.sharedMaterial.HasProperty("_Color")) mr.sharedMaterial.SetColor("_Color", col);
-            if (mr.sharedMaterial.HasProperty("_BaseColor")) mr.sharedMaterial.SetColor("_BaseColor", col);
+            var mat = mr.sharedMaterial;
+            if (mat == null)
+            {
+                mat = CreateMat();
+                mr.sharedMaterial = mat;
+            }
+            if (mat.HasProperty("_Color")) mat.SetColor("_Color", col);
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", col);
         }
     }
 
     public void Hide()
     {
         Ensure();
-        if (ghost.activeSelf) ghost.SetActive(false);
+        if (ghost && ghost.activeSelf) ghost.SetActive(false);
     }
 
     void Ensure()
     {
         if (!ghost)
         {
+            // Reuse existing child if present (prevents stacking)
+            var t = transform.Find(ChildName);
+            ghost = t ? t.gameObject : null;
+        }
+
+        if (!ghost)
+        {
             ghost = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            ghost.name = "BuildGhost";
+            ghost.name = ChildName;
             ghost.transform.SetParent(transform, false);
             ghost.transform.localScale = scale;
+
             var col = ghost.GetComponent<Collider>();
             if (col) DestroyImmediate(col);
 
             mr = ghost.GetComponent<MeshRenderer>();
-            var shader = Shader.Find("Unlit/Color");
-            if (!shader) shader = Shader.Find("Sprites/Default");
-            var mat = new Material(shader) { renderQueue = 3000 };
-            mr.sharedMaterial = mat;
-
+            if (!mr) mr = ghost.AddComponent<MeshRenderer>();
+            mr.sharedMaterial = CreateMat();
             mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             mr.receiveShadows = false;
         }
+
+        if (!mr) mr = ghost.GetComponent<MeshRenderer>();
+        ghost.transform.localScale = scale; // keep scale consistent
+    }
+
+    Material CreateMat()
+    {
+        var shader = Shader.Find("Unlit/Color");
+        if (!shader) shader = Shader.Find("Sprites/Default");
+        var m = new Material(shader) { renderQueue = 3000 };
+        // transparent settings (URP-safe)
+        TrySetInt(m, "_Surface", 1);
+        TrySetInt(m, "_ZWrite", 0);
+        TrySetInt(m, "_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+        TrySetInt(m, "_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+        return m;
+    }
+
+    static void TrySetInt(Material m, string prop, int val)
+    {
+        if (m.HasProperty(prop)) m.SetInt(prop, val);
     }
 }

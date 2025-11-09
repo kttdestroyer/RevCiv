@@ -1,61 +1,77 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-[System.Serializable]
-public struct ResourceStack
+[Serializable]
+public class ResourceStack
 {
+    [Tooltip("Optional: link to the ResourceDef asset. (SaveManager expects this field.)")]
     public ResourceDef resource;
-    public int amountPerDay;
+
+    [Tooltip("Fallback key/name used if 'resource' is not assigned.")]
+    public string resourceName;
+
+    [Tooltip("Base yield per in-game day for this resource on this tile.")]
+    public int amountPerDay = 0;
+
+    /// <summary>
+    /// Safe identifier for this resource entry. Uses ResourceDef.name if present, else the fallback string.
+    /// </summary>
+    public string Key => resource ? resource.name : (string.IsNullOrEmpty(resourceName) ? "" : resourceName);
 }
 
-[ExecuteAlways]
+[DisallowMultipleComponent]
 public class TileInfo : MonoBehaviour
 {
-    [Header("Environment")]
-    public string biome = "Plains";
-    public string subBiome = "";
-    [Range(0, 1)] public float temperature = 0.5f;
-    [Range(0, 1)] public float moisture = 0.5f;
+    [Header("World/Climate")]
+    public string biome;
+    public string subBiome;
+    public float temperature;
+    public float moisture;
 
-    [Header("Resources")]
-    public List<ResourceStack> resources = new();
-    public bool discovered = true;
+    [Header("Resources (static per tile)")]
+    public List<ResourceStack> resources = new List<ResourceStack>();
+
+    [Header("Ownership / Runtime")]
+    public int ownerSettlementId = -1;
+    public BuildingInstance buildingInstance;
+    [Tooltip("True when a worker is currently assigned to work this tile.")]
     public bool worked = false;
 
-    [HideInInspector] public int ownerSettlementId = -1;
-    [HideInInspector] public GameObject buildingInstance;
+    [Header("Grid (hex axial coords)")]
+    [Tooltip("Axial Q coordinate (pointy-top).")]
+    public int q;
+    [Tooltip("Axial R coordinate (pointy-top).")]
+    public int r;
 
-    [Header("Gizmo (per-tile)")]
-    [Tooltip("Show this tile's resource dots (useful in editor).")]
-    public bool showTileDots = true;
+    // Back-compat for any consumers (mirrors q/r)
+    [Obsolete("Use q/r axial coords.")]
+    public int gx { get => q; set => q = value; }
+    [Obsolete("Use q/r axial coords.")]
+    public int gz { get => r; set => r = value; }
 
-    [Tooltip("Size of this tile's dots when shown from TileInfo.")]
-    public float tileDotSize = 0.07f;
+    [Header("Gizmos (optional)")]
+    public bool drawCenterGizmo = false;
+    public Color gizmoColor = Color.white;
 
-    public int GetYield(ResourceDef res)
+    void OnValidate()
     {
-        for (int i = 0; i < resources.Count; i++)
-            if (resources[i].resource == res) return resources[i].amountPerDay;
-        return 0;
-    }
-
-    public void NaturalRecovery()
-    {
-        // placeholder for future regrowth logic
-    }
-
-    void OnDrawGizmos()
-    {
-        if (!showTileDots) return;
-        if (resources == null || resources.Count == 0) return;
-
-        Vector3 p = transform.position + Vector3.up * 0.25f;
-        float off = 0f;
-        for (int i = 0; i < resources.Count; i++)
+        // Keep the fallback name in sync if a ResourceDef is assigned
+        if (resources != null)
         {
-            Gizmos.color = Color.cyan;
-            Gizmos.DrawSphere(p + new Vector3(off, 0, 0), tileDotSize);
-            off += tileDotSize * 2f;
+            for (int i = 0; i < resources.Count; i++)
+            {
+                var rs = resources[i];
+                if (rs == null) continue;
+                if (rs.resource != null) rs.resourceName = rs.resource.name;
+            }
         }
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        if (!drawCenterGizmo) return;
+        Gizmos.color = gizmoColor;
+        Gizmos.DrawSphere(transform.position + Vector3.up * 0.1f, 0.05f);
     }
 }
